@@ -1,55 +1,108 @@
-// script.js - Backend + Line Graph Integration
+// ==============================
+// GET ELEMENTS
+// ==============================
+const inputs = document.querySelectorAll(".input");
+const out1 = document.getElementById("out1");
+const out2 = document.getElementById("out2");
+const submitBtn = document.querySelector(".btn");
+const graphCanvas = document.getElementById("graph");
+const ctx = graphCanvas.getContext("2d");
 
-// Select elements
-const out1 = document.getElementById('out1');
-const out2 = document.getElementById('out2');
-const canvas = document.getElementById('graph');
+// Resize canvas properly
+graphCanvas.width = graphCanvas.offsetWidth;
+graphCanvas.height = graphCanvas.offsetHeight;
 
-// Canvas setup
-const ctx = canvas.getContext('2d');
-canvas.width = canvas.offsetWidth;
-canvas.height = canvas.offsetHeight;
+function drawGraph(values) {
+    ctx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
 
-// Function to draw line graph
-function drawLineGraph(data) {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const labels = ["Calories", "Steps", "Workout", "Health"];
+    const barWidth = 60;
+    const gap = 40;
+    const startX = 40;
+    const maxBarHeight = graphCanvas.height - 40; // leave space for labels
 
-  const maxVal = Math.max(...data);
-  const minVal = Math.min(...data);
+    values.forEach((val, i) => {
+        const x = startX + i * (barWidth + gap);
 
-  const stepX = canvas.width / (data.length - 1);
+        // Scale each bar independently
+        let barHeight;
+        if (i === 3) {
+            // Health is already 0-100
+            barHeight = (val / 100) * maxBarHeight;
+        } else {
+            // Scale relative to max of Calories, Steps, Workout only
+            const maxVal = Math.max(...values.slice(0, 3));
+            barHeight = (val / maxVal) * maxBarHeight;
+        }
 
-  ctx.beginPath();
-  ctx.lineWidth = 2;
+        const y = graphCanvas.height - barHeight - 20;
 
-  data.forEach((val, i) => {
-    const x = i * stepX;
-    const y = canvas.height - ((val - minVal) / (maxVal - minVal)) * canvas.height;
+        // Color
+        if (i === 3) {
+            if (val >= 70) ctx.fillStyle = "#4caf50";
+            else if (val >= 40) ctx.fillStyle = "#ff9800";
+            else ctx.fillStyle = "#f44336";
+        } else {
+            ctx.fillStyle = "#3ab8ff";
+        }
 
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
+        ctx.fillRect(x, y, barWidth, barHeight);
 
-  ctx.stroke();
+        // Labels
+        ctx.fillStyle = "#fff";
+        ctx.font = "14px Poppins";
+        ctx.textAlign = "center";
+        ctx.fillText(labels[i], x + barWidth / 2, graphCanvas.height - 5);
+
+        // Values on top of bar
+        ctx.fillText(
+            i === 3 ? val + "/100" : val,
+            x + barWidth / 2,
+            y - 5
+        );
+    });
 }
 
-// Button event
-document.querySelector('.btn').addEventListener('click', () => {
-  const name = document.querySelectorAll('.input')[0].value;
-  const age = document.querySelectorAll('.input')[1].value;
-  const calories = document.querySelectorAll('.input')[2].value;
-  const steps = document.querySelectorAll('.input')[3].value;
-  const workout = document.querySelectorAll('.input')[4].value;
 
-  out1.textContent = `${name}, Age ${age}, consumed ${calories} calories.`;
-  out2.textContent = `Steps: ${steps}, Workout: ${workout}`;
 
-  const graphData = [
-    Number(age) || 10,
-    Number(calories) / 10 || 20,
-    Number(steps) / 50 || 30,
-    Number(workout) * 5 || 5
-  ];
 
-  drawLineGraph(graphData);
+
+
+// ==============================
+// FUNCTION: CALCULATE HEALTH SCORE
+// ==============================
+function calculateHealthScore(cal, steps, workout) {
+    let score = 0;
+
+    if (steps > 5000) score += 30;
+    if (workout > 20) score += 40;
+
+    // less calories = better (simple logic)
+    if (cal < 2000) score += 30;
+
+    return Math.min(score, 100);
+}
+
+// ==============================
+// SUBMIT BUTTON EVENT
+// ==============================
+submitBtn.addEventListener("click", () => {
+
+    const name = inputs[0].value;
+    const age = inputs[1].value;
+    const calories = parseInt(inputs[2].value) || 0;
+    const steps = parseInt(inputs[3].value) || 0;
+    const workout = parseInt(inputs[4].value) || 0;
+
+    const healthScore = calculateHealthScore(calories, steps, workout);
+
+    // OUTPUT PANELS
+    out1.textContent = `${name}, Age ${age} — Your health score is ${healthScore}/100`;
+    out2.textContent = 
+        healthScore > 70 
+        ? "Great! Keep maintaining your lifestyle."
+        : "Needs improvement. Try adding more activity.";
+
+    // DRAW GRAPH (4 bars)
+    drawGraph([calories, steps, workout, healthScore]);
 });
