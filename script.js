@@ -1,62 +1,55 @@
-// SELECT ELEMENTS
-const inputs = document.querySelectorAll(".panel .input");
-const btn = document.querySelector(".btn");
+// script.js - Backend + Line Graph Integration
 
-const out1 = document.getElementById("out1");
-const out2 = document.getElementById("out2");
-const graph = document.getElementById("graph");
-const ctx = graph.getContext("2d");
+// Select elements
+const out1 = document.getElementById('out1');
+const out2 = document.getElementById('out2');
+const canvas = document.getElementById('graph');
 
-// BUTTON CLICK FUNCTION
-btn.addEventListener("click", () => {
+// Canvas setup
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.offsetWidth;
+canvas.height = canvas.offsetHeight;
 
-    const name = inputs[0].value.trim();
-    const age = parseInt(inputs[1].value.trim());
-    const calories = parseInt(inputs[2].value.trim());
-    const steps = parseInt(inputs[3].value.trim());
-    const workout = parseInt(inputs[4].value.trim());
+// Function to draw line graph
+function drawLineGraph(data) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // BASIC VALIDATION
-    if (!name || !age || !calories || !steps || !workout) {
-        out1.textContent = "Please fill all fields!";
-        out2.textContent = "Data missing!";
-        return;
-    }
+  const maxVal = Math.max(...data);
+  const minVal = Math.min(...data);
 
-    // HEALTH SCORE CALC
-    const healthScore = steps + workout * 10 - calories / 20;
+  const stepX = canvas.width / (data.length - 1);
 
-    // CONDITION
-    let condition = "";
-    if (healthScore > 200) condition = "Excellent 💪";
-    else if (healthScore > 100) condition = "Good 🙂";
-    else if (healthScore > 50) condition = "Average 😐";
-    else condition = "Needs Improvement 😓";
+  ctx.beginPath();
+  ctx.lineWidth = 2;
 
-    out1.textContent = `${name}, your current health status is: ${condition}`;
+  data.forEach((val, i) => {
+    const x = i * stepX;
+    const y = canvas.height - ((val - minVal) / (maxVal - minVal)) * canvas.height;
 
-    // FUTURE HEALTH PREDICTION
-    const future = healthScore + 50;
-    let futureText = future > 150 ? "Amazing Future Shape 🔥" : "You can still improve! ✨";
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
 
-    out2.textContent = futureText;
-
-    // GRAPH
-    drawGraph([calories / 10, steps / 10, workout * 5, healthScore / 5]);
-});
-
-
-// SIMPLE GRAPH DRAWING
-function drawGraph(values) {
-    ctx.clearRect(0, 0, graph.width, graph.height);
-
-    const barWidth = 40;
-    const gap = 20;
-    let x = 10;
-
-    values.forEach(v => {
-        ctx.fillStyle = "rgba(0, 200, 255, 0.6)";
-        ctx.fillRect(x, graph.height - v, barWidth, v);
-        x += barWidth + gap;
-    });
+  ctx.stroke();
 }
+
+// Button event
+document.querySelector('.btn').addEventListener('click', () => {
+  const name = document.querySelectorAll('.input')[0].value;
+  const age = document.querySelectorAll('.input')[1].value;
+  const calories = document.querySelectorAll('.input')[2].value;
+  const steps = document.querySelectorAll('.input')[3].value;
+  const workout = document.querySelectorAll('.input')[4].value;
+
+  out1.textContent = `${name}, Age ${age}, consumed ${calories} calories.`;
+  out2.textContent = `Steps: ${steps}, Workout: ${workout}`;
+
+  const graphData = [
+    Number(age) || 10,
+    Number(calories) / 10 || 20,
+    Number(steps) / 50 || 30,
+    Number(workout) * 5 || 5
+  ];
+
+  drawLineGraph(graphData);
+});
